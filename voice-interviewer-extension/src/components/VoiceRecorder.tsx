@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import { useRecorder } from '@/hooks/useRecorder';
-import { Mic, Square, Pause, Play, RotateCcw } from 'lucide-react';
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { Mic, Square, Pause, Play, RotateCcw, MessageSquare, X } from 'lucide-react';
 import type { VoiceMetrics } from '@/lib/emotionAnalysis';
 
 interface VoiceRecorderProps {
-  onRecordingComplete?: (audioBlob: Blob, voiceMetrics: VoiceMetrics) => void;
+  onRecordingComplete?: (audioBlob: Blob, voiceMetrics: VoiceMetrics, liveTranscript?: string) => void;
 }
 
 export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
@@ -25,16 +26,36 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     resumeRecording,
     resetRecording,
   } = useRecorder();
+
+  const {
+    transcript: liveTranscript,
+    isListening,
+    startListening,
+    stopListening,
+    resetTranscript,
+    isSupported: isSpeechSupported,
+    error: speechError,
+  } = useSpeechRecognition();
+
   const hasNotifiedRef = useRef(false);
+
+  const handleStart = () => {
+    startRecording();
+    if (isSpeechSupported) {
+      startListening();
+    }
+  };
 
   const handleStop = () => {
     stopRecording();
+    stopListening();
     hasNotifiedRef.current = false;
   };
 
   const handleReset = () => {
     hasNotifiedRef.current = false;
     resetRecording();
+    resetTranscript();
   };
 
   useEffect(() => {
@@ -44,10 +65,10 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     }
 
     if (!hasNotifiedRef.current && audioBlob && voiceMetrics && onRecordingComplete) {
-      onRecordingComplete(audioBlob, voiceMetrics);
+      onRecordingComplete(audioBlob, voiceMetrics, liveTranscript || undefined);
       hasNotifiedRef.current = true;
     }
-  }, [audioBlob, voiceMetrics, onRecordingComplete, isRecording]);
+  }, [audioBlob, voiceMetrics, onRecordingComplete, isRecording, liveTranscript]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -110,11 +131,46 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
         )}
       </div>
 
+      {/* Live Transcript - Persists after recording */}
+      {isSpeechSupported && liveTranscript && (
+        <div className="mb-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200 relative">
+          <button
+            onClick={resetTranscript}
+            className="absolute top-2 right-2 p-1 hover:bg-indigo-200 rounded-full transition-colors"
+            title="Clear transcript"
+          >
+            <X className="w-4 h-4 text-indigo-600" />
+          </button>
+          <div className="flex items-center gap-2 mb-2">
+            <MessageSquare className="w-4 h-4 text-indigo-600" />
+            <span className="text-xs font-semibold text-indigo-900">
+              {isListening ? 'Live Transcript' : 'Transcript'}
+            </span>
+            {isListening && (
+              <span className="flex items-center gap-1">
+                <span className="animate-pulse w-2 h-2 rounded-full bg-red-500" />
+                <span className="text-xs text-red-600 font-medium">Listening</span>
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-800 min-h-[40px] pr-6">
+            {liveTranscript}
+          </p>
+        </div>
+      )}
+
+      {/* Speech Recognition Error */}
+      {speechError && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-sm">
+          {speechError}
+        </div>
+      )}
+
       {/* Controls */}
       <div className="flex gap-2 flex-wrap">
         {!isRecording ? (
           <button
-            onClick={startRecording}
+            onClick={handleStart}
             className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
           >
             <Mic className="w-4 h-4" />
