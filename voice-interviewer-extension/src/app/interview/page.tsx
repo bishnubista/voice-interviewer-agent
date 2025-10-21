@@ -128,7 +128,7 @@ export default function InterviewPage() {
 
           {/* Right Column: Emotion Dashboard */}
           <div className="space-y-6">
-            <EmotionVisualizer emotion={currentEmotion} isLive={isProcessing} />
+            <EmotionVisualizer emotion={isProcessing ? null : currentEmotion} isLive={isProcessing} />
 
             {/* Instructions */}
             <div className="p-6 border-2 border-indigo-200 rounded-lg bg-indigo-50">

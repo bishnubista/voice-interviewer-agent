@@ -11,14 +11,27 @@ interface EmotionVisualizerProps {
 export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVisualizerProps) {
   if (!emotion) {
     return (
-      <div className="p-6 border-2 rounded-lg bg-gray-50">
+      <div className="p-6 border-2 rounded-lg bg-white shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5" />
           Emotion Dashboard
         </h3>
-        <p className="text-sm text-gray-500 text-center py-8">
-          {isLive ? '🎤 Analyzing emotion... (2-5 seconds)' : 'No emotion data yet. Record your response to see AI emotion analysis.'}
-        </p>
+        {isLive ? (
+          <div className="py-12 flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+              <Activity className="w-6 h-6 text-blue-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-semibold text-blue-600">Analyzing with Hume AI...</p>
+              <p className="text-xs text-gray-500">Professional emotion detection in progress (2-5 seconds)</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 text-center py-8">
+            No emotion data yet. Record your response to see AI emotion analysis.
+          </p>
+        )}
       </div>
     );
   }
@@ -33,12 +46,6 @@ export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVi
           <Activity className="w-5 h-5" />
           Emotion Dashboard
         </h3>
-        {isLive && (
-          <span className="flex items-center gap-1 text-xs font-medium text-blue-600">
-            <span className="animate-pulse w-2 h-2 rounded-full bg-blue-600" />
-            Analyzing...
-          </span>
-        )}
       </div>
 
       {/* Current Emotion */}
