@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
+import { getInterviewUrl } from "@/lib/config";
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -56,7 +57,7 @@ export default async function DashboardPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Quick Actions</h3>
                 <div className="flex gap-4">
                   <a
-                    href={`${process.env.NEXT_PUBLIC_INTERVIEW_URL}/interview`}
+                    href={`${getInterviewUrl()}/interview`}
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     Start Interview

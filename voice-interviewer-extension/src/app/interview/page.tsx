@@ -6,6 +6,7 @@ import EmotionVisualizer from '@/components/EmotionVisualizer';
 import AIInterviewer from '@/components/AIInterviewer';
 import { useInterview } from '@/hooks/useInterview';
 import type { VoiceMetrics } from '@/lib/emotionAnalysis';
+import { getDashboardUrl } from '@/lib/config';
 import Link from 'next/link';
 import { ArrowLeft, Play } from 'lucide-react';
 
@@ -53,7 +54,7 @@ export default function InterviewPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://clerk-auth-extension-8wyxxwe11-bbista.vercel.app'}/dashboard`}
+                href={`${getDashboardUrl()}/dashboard`}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
