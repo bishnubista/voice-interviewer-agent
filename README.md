@@ -103,6 +103,32 @@ empathetic-insights/
 
 ## 🚀 Quick Start
 
+### ⚡ TL;DR - Get Running in 3 Commands
+
+```bash
+# 1. Clone and install dependencies
+git clone https://github.com/bishnubista/voice-interviewer-agent.git
+cd voice-interviewer-agent
+npm run install:all
+
+# 2. Set up environment variables (see below for API keys)
+cd clerk-auth-extension && cp .env.example .env.local
+cd ../voice-interviewer-extension && cp .env.example .env.local
+# Edit both .env.local files with your API keys
+
+# 3. Run both apps
+cd ..
+npm run dev:all
+```
+
+**Access the apps:**
+- Auth Extension: http://localhost:3000
+- Voice Interviewer: http://localhost:3001
+
+---
+
+### 📋 Detailed Setup
+
 ### Prerequisites
 
 - **Node.js** 18.x or higher
