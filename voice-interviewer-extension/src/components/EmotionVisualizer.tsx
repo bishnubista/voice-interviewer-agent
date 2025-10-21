@@ -12,7 +12,7 @@ export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVi
   if (!emotion) {
     return (
       <div className="p-6 border-2 rounded-lg bg-gray-50">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Activity className="w-5 h-5" />
           Emotion Dashboard
         </h3>
@@ -29,7 +29,7 @@ export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVi
   return (
     <div className="p-6 border-2 rounded-lg bg-white shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Activity className="w-5 h-5" />
           Emotion Dashboard
         </h3>

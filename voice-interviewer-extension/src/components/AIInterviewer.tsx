@@ -14,11 +14,14 @@ export default function AIInterviewer({ conversation, currentQuestion, isProcess
     <div className="p-6 border-2 rounded-lg bg-white shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <MessageCircle className="w-5 h-5 text-indigo-600" />
-        <h3 className="text-lg font-semibold">Conversation</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Conversation</h3>
         {isProcessing && (
-          <div className="ml-auto flex items-center gap-1 text-xs text-gray-500">
-            <Sparkles className="w-3 h-3 animate-spin" />
-            Processing...
+          <div className="ml-auto flex items-center gap-2 px-3 py-1 bg-indigo-50 rounded-full border border-indigo-200">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-600"></span>
+            </span>
+            <span className="text-xs font-medium text-indigo-700">AI is listening...</span>
           </div>
         )}
       </div>
@@ -26,8 +29,16 @@ export default function AIInterviewer({ conversation, currentQuestion, isProcess
       {/* Conversation History */}
       <div className="space-y-4 mb-4 max-h-[400px] overflow-y-auto">
         {conversation.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p className="text-sm">Click &ldquo;Start Interview&rdquo; to begin</p>
+          <div className="text-center py-8">
+            <div className="mb-4">
+              <Sparkles className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">Welcome to Your AI Interview!</h4>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
+                I&apos;m your emotion-adaptive AI interviewer. I&apos;ll ask you questions and adapt based on how you&apos;re feeling.
+                Ready to begin?
+              </p>
+            </div>
+            <p className="text-xs text-gray-500">Click &ldquo;Start Interview&rdquo; above to get started</p>
           </div>
         ) : (
           conversation.map((message) => (

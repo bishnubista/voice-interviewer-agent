@@ -159,7 +159,7 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
       {voiceMetrics && !isRecording && (
         <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm">
           <p className="font-medium text-blue-900 mb-1">Voice Metrics:</p>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-2 gap-2 text-xs text-gray-800">
             <div>Avg Volume: {voiceMetrics.avgVolume}%</div>
             <div>Peak: {voiceMetrics.peakVolume}%</div>
             <div>Speech Rate: {voiceMetrics.speechRate} wpm</div>

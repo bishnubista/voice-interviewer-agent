@@ -33,10 +33,10 @@ export default function InterviewPage() {
     setTranscript('');
   };
 
-  // Get latest emotion from conversation
-  const currentEmotion = conversation.length > 0
-    ? conversation[conversation.length - 1].emotion || null
-    : null;
+  // Get latest emotion from last user message (not AI message)
+  const currentEmotion = conversation
+    .filter(msg => msg.role === 'user')
+    .reverse()[0]?.emotion || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,7 +101,7 @@ export default function InterviewPage() {
             {/* Transcript Input */}
             {conversation.length > 0 && (
               <div className="p-6 border-2 rounded-lg bg-white shadow-sm">
-                <h3 className="text-lg font-semibold mb-3">Response Text</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Response Text</h3>
                 <p className="text-sm text-gray-600 mb-3">
                   {process.env.NEXT_PUBLIC_OPENAI_ENABLED === 'true'
                     ? 'Text will be auto-transcribed. You can also type here to override.'

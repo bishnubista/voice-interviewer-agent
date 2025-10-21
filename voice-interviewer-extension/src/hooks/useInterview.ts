@@ -73,6 +73,12 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
     voiceMetrics: VoiceMetrics,
     manualTranscript?: string
   ) => {
+    console.log('🎙️ submitResponse called with:', {
+      audioBlobSize: audioBlob?.size,
+      voiceMetrics,
+      manualTranscript
+    });
+
     setIsProcessing(true);
     setError(null);
 
@@ -81,6 +87,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
 
       // Step 1: Transcribe if no manual transcript and OpenAI is available
       if (!manualTranscript) {
+        console.log('📝 Attempting transcription...');
         const formData = new FormData();
         formData.append('audio', audioBlob);
 
@@ -90,6 +97,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
         });
 
         const transcribeData = await transcribeResponse.json();
+        console.log('📝 Transcription response:', transcribeData);
 
         if (transcribeResponse.ok && transcribeData.transcript) {
           transcript = transcribeData.transcript;
@@ -99,7 +107,10 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
         }
       }
 
+      console.log('💬 Using transcript:', transcript);
+
       // Step 2: Analyze emotion
+      console.log('😊 Analyzing emotion with metrics:', voiceMetrics);
       const emotionResponse = await fetch('/api/analyze-emotion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -109,7 +120,14 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
         }),
       });
 
+      if (!emotionResponse.ok) {
+        const errorData = await emotionResponse.json();
+        console.error('❌ Emotion analysis failed:', errorData);
+        throw new Error(errorData.error || 'Emotion analysis failed');
+      }
+
       const emotionData: EmotionResult = await emotionResponse.json();
+      console.log('😊 Emotion analysis result:', emotionData);
 
       // Step 3: Add user response to conversation
       const userMsg: ConversationMessage = {
@@ -124,6 +142,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
       setConversation(prev => [...prev, userMsg]);
 
       // Step 4: Generate next question based on emotion
+      console.log('🤖 Generating next question based on emotion:', emotionData.emotion);
       const nextQuestionResponse = await fetch('/api/generate-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,6 +157,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
       });
 
       const nextQuestionData = await nextQuestionResponse.json();
+      console.log('🤖 Next question generated:', nextQuestionData);
 
       const aiMsg: ConversationMessage = {
         id: (Date.now() + 1).toString(),
