@@ -17,7 +17,7 @@ export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVi
           Emotion Dashboard
         </h3>
         <p className="text-sm text-gray-500 text-center py-8">
-          No emotion data yet. Start recording to see real-time analysis.
+          {isLive ? '🎤 Analyzing emotion... (2-5 seconds)' : 'No emotion data yet. Record your response to see AI emotion analysis.'}
         </p>
       </div>
     );
@@ -34,9 +34,9 @@ export default function EmotionVisualizer({ emotion, isLive = false }: EmotionVi
           Emotion Dashboard
         </h3>
         {isLive && (
-          <span className="flex items-center gap-1 text-xs font-medium text-red-600">
-            <span className="animate-pulse w-2 h-2 rounded-full bg-red-600" />
-            LIVE
+          <span className="flex items-center gap-1 text-xs font-medium text-blue-600">
+            <span className="animate-pulse w-2 h-2 rounded-full bg-blue-600" />
+            Analyzing...
           </span>
         )}
       </div>
