@@ -1,14 +1,23 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRecorder } from '@/hooks/useRecorder';
 import { Mic, Square, Pause, Play, RotateCcw } from 'lucide-react';
-import type { VoiceMetrics } from '@/lib/emotionAnalysis';
+import type { EmotionResult, VoiceMetrics } from '@/lib/emotionAnalysis';
 
 interface VoiceRecorderProps {
   onRecordingComplete?: (audioBlob: Blob, voiceMetrics: VoiceMetrics) => void;
+  onLiveEmotionUpdate?: (emotion: EmotionResult | null) => void;
+  onLiveMetricsUpdate?: (voiceMetrics: VoiceMetrics | null) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
 }
 
-export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProps) {
+export default function VoiceRecorder({
+  onRecordingComplete,
+  onLiveEmotionUpdate,
+  onLiveMetricsUpdate,
+  onRecordingStateChange,
+}: VoiceRecorderProps) {
   const {
     isRecording,
     isPaused,
@@ -17,6 +26,8 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     error,
     duration,
     voiceMetrics,
+    liveVoiceMetrics,
+    liveEmotion,
     currentVolume,
     startRecording,
     stopRecording,
@@ -24,16 +35,45 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     resumeRecording,
     resetRecording,
   } = useRecorder();
+  const hasNotifiedRef = useRef(false);
 
   const handleStop = () => {
     stopRecording();
-    // Wait a tick for voiceMetrics to be calculated
-    setTimeout(() => {
-      if (audioBlob && voiceMetrics && onRecordingComplete) {
-        onRecordingComplete(audioBlob, voiceMetrics);
-      }
-    }, 100);
+    hasNotifiedRef.current = false;
   };
+
+  const handleReset = () => {
+    hasNotifiedRef.current = false;
+    resetRecording();
+  };
+
+  useEffect(() => {
+    if (isRecording) {
+      hasNotifiedRef.current = false;
+      return;
+    }
+
+    if (!hasNotifiedRef.current && audioBlob && voiceMetrics && onRecordingComplete) {
+      onRecordingComplete(audioBlob, voiceMetrics);
+      hasNotifiedRef.current = true;
+    }
+  }, [audioBlob, voiceMetrics, onRecordingComplete, isRecording]);
+
+  useEffect(() => {
+    onRecordingStateChange?.(isRecording);
+  }, [isRecording, onRecordingStateChange]);
+
+  useEffect(() => {
+    if (onLiveEmotionUpdate) {
+      onLiveEmotionUpdate(liveEmotion);
+    }
+  }, [liveEmotion, onLiveEmotionUpdate]);
+
+  useEffect(() => {
+    if (onLiveMetricsUpdate) {
+      onLiveMetricsUpdate(liveVoiceMetrics);
+    }
+  }, [liveVoiceMetrics, onLiveMetricsUpdate]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -92,6 +132,23 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
                 />
               </div>
             </div>
+
+            {liveVoiceMetrics && (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-gray-600">
+                <div className="rounded bg-blue-50 px-2 py-1 text-center">
+                  <div className="font-semibold text-blue-700">{liveVoiceMetrics.avgVolume}%</div>
+                  <div className="uppercase tracking-wide text-[10px]">Volume</div>
+                </div>
+                <div className="rounded bg-green-50 px-2 py-1 text-center">
+                  <div className="font-semibold text-green-700">{liveVoiceMetrics.speechRate} wpm</div>
+                  <div className="uppercase tracking-wide text-[10px]">Pace</div>
+                </div>
+                <div className="rounded bg-purple-50 px-2 py-1 text-center">
+                  <div className="font-semibold text-purple-700">{Math.round((1 - liveVoiceMetrics.volumeVariance) * 100)}%</div>
+                  <div className="uppercase tracking-wide text-[10px]">Stability</div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -138,7 +195,7 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
 
         {audioURL && !isRecording && (
           <button
-            onClick={resetRecording}
+            onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
           >
             <RotateCcw className="w-4 h-4" />

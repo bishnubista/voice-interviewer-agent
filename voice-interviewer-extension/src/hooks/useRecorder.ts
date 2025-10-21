@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { calculateRMSVolume, type VoiceMetrics } from '@/lib/emotionAnalysis';
+import { calculateRMSVolume, classifyEmotion, type VoiceMetrics, type EmotionResult } from '@/lib/emotionAnalysis';
 
 export interface RecorderState {
   isRecording: boolean;
@@ -11,6 +11,8 @@ export interface RecorderState {
   error: string | null;
   duration: number; // in seconds
   voiceMetrics: VoiceMetrics | null;
+  liveVoiceMetrics: VoiceMetrics | null;
+  liveEmotion: EmotionResult | null;
 }
 
 export interface UseRecorderReturn extends RecorderState {
@@ -31,6 +33,8 @@ export function useRecorder(): UseRecorderReturn {
   const [duration, setDuration] = useState(0);
   const [currentVolume, setCurrentVolume] = useState(0);
   const [voiceMetrics, setVoiceMetrics] = useState<VoiceMetrics | null>(null);
+  const [liveVoiceMetrics, setLiveVoiceMetrics] = useState<VoiceMetrics | null>(null);
+  const [liveEmotion, setLiveEmotion] = useState<EmotionResult | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -44,6 +48,40 @@ export function useRecorder(): UseRecorderReturn {
   const volumeSamplesRef = useRef<number[]>([]);
   const pauseTimesRef = useRef<number[]>([]);
   const lastSoundTimeRef = useRef<number>(0);
+  const lastSnapshotRef = useRef<number>(0);
+
+  const buildSnapshotMetrics = useCallback((elapsedSeconds: number): VoiceMetrics | null => {
+    const volumes = volumeSamplesRef.current;
+    const pauses = pauseTimesRef.current;
+
+    if (!volumes.length || elapsedSeconds <= 0) {
+      return null;
+    }
+
+    const avgVolume = volumes.reduce((acc, value) => acc + value, 0) / volumes.length;
+    const peakVolume = Math.max(...volumes);
+    const variance = volumes.reduce((sum, volume) => sum + Math.pow(volume - avgVolume, 2), 0) / volumes.length;
+    const volumeVariance = Math.sqrt(variance) / 100;
+
+    const avgPause = pauses.length > 0
+      ? pauses.reduce((acc, value) => acc + value, 0) / pauses.length
+      : 0;
+
+    const durationMinutes = elapsedSeconds / 60;
+    const pauseRatio = durationMinutes > 0 ? pauses.length / durationMinutes : 0;
+    const baseSpeechRate = 160 - pauseRatio * 10;
+    const safeSpeechRate = Number.isFinite(baseSpeechRate) ? baseSpeechRate : 120;
+    const speechRate = Math.round(Math.min(Math.max(safeSpeechRate, 60), 220));
+
+    return {
+      avgVolume: Math.round(avgVolume),
+      volumeVariance: Math.round(volumeVariance * 100) / 100,
+      speechRate,
+      avgPause: Math.round(avgPause),
+      responseLatency: 0,
+      peakVolume: Math.round(peakVolume),
+    };
+  }, []);
 
   const startRecording = useCallback(async () => {
     try {
@@ -77,6 +115,10 @@ export function useRecorder(): UseRecorderReturn {
       audioChunksRef.current = [];
       volumeSamplesRef.current = [];
       pauseTimesRef.current = [];
+      lastSoundTimeRef.current = 0;
+      lastSnapshotRef.current = 0;
+      setLiveVoiceMetrics(null);
+      setLiveEmotion(null);
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -93,6 +135,8 @@ export function useRecorder(): UseRecorderReturn {
         // Calculate final metrics
         const metrics = calculateFinalMetrics();
         setVoiceMetrics(metrics);
+        setLiveVoiceMetrics(metrics);
+        setLiveEmotion(classifyEmotion(metrics));
 
         // Clean up
         stream.getTracks().forEach(track => track.stop());
@@ -135,6 +179,18 @@ export function useRecorder(): UseRecorderReturn {
           } else {
             lastSoundTimeRef.current = now;
           }
+
+          const elapsedSeconds = (Date.now() - startTimeRef.current) / 1000;
+          const shouldUpdate = now - lastSnapshotRef.current > 250 && elapsedSeconds > 0.5;
+
+          if (shouldUpdate) {
+            const snapshot = buildSnapshotMetrics(elapsedSeconds);
+            if (snapshot) {
+              setLiveVoiceMetrics(snapshot);
+              setLiveEmotion(classifyEmotion(snapshot));
+            }
+            lastSnapshotRef.current = now;
+          }
         }
       }, 50);
 
@@ -149,6 +205,8 @@ export function useRecorder(): UseRecorderReturn {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       setIsPaused(false);
+      lastSoundTimeRef.current = 0;
+      lastSnapshotRef.current = 0;
 
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
@@ -179,48 +237,28 @@ export function useRecorder(): UseRecorderReturn {
     setDuration(0);
     setCurrentVolume(0);
     setVoiceMetrics(null);
+    setLiveVoiceMetrics(null);
+    setLiveEmotion(null);
     setError(null);
     audioChunksRef.current = [];
     volumeSamplesRef.current = [];
     pauseTimesRef.current = [];
+    lastSoundTimeRef.current = 0;
+    lastSnapshotRef.current = 0;
   }, []);
 
   const calculateFinalMetrics = useCallback((): VoiceMetrics => {
-    const volumes = volumeSamplesRef.current;
-    const pauses = pauseTimesRef.current;
+    const snapshot = buildSnapshotMetrics(Math.max(duration, 0.1));
 
-    const avgVolume = volumes.length > 0
-      ? volumes.reduce((a, b) => a + b, 0) / volumes.length
-      : 0;
-
-    const peakVolume = volumes.length > 0 ? Math.max(...volumes) : 0;
-
-    // Calculate variance
-    const variance = volumes.length > 0
-      ? volumes.reduce((sum, vol) => sum + Math.pow(vol - avgVolume, 2), 0) / volumes.length
-      : 0;
-    const volumeVariance = Math.sqrt(variance) / 100; // Normalize to 0-1
-
-    const avgPause = pauses.length > 0
-      ? pauses.reduce((a, b) => a + b, 0) / pauses.length
-      : 0;
-
-    // Estimate speech rate (rough approximation based on pauses and duration)
-    // More pauses = slower speech
-    const pauseRatio = pauses.length / (duration / 60); // Pauses per minute
-    const speechRate = Math.max(80, 160 - pauseRatio * 10); // Rough estimate
-
-    const responseLatency = 0; // Would need to track from question end time
-
-    return {
-      avgVolume: Math.round(avgVolume),
-      volumeVariance: Math.round(volumeVariance * 100) / 100,
-      speechRate: Math.round(speechRate),
-      avgPause: Math.round(avgPause),
-      responseLatency,
-      peakVolume: Math.round(peakVolume)
+    return snapshot ?? {
+      avgVolume: 0,
+      volumeVariance: 0,
+      speechRate: 80,
+      avgPause: 0,
+      responseLatency: 0,
+      peakVolume: 0,
     };
-  }, [duration]);
+  }, [buildSnapshotMetrics, duration]);
 
   return {
     isRecording,
@@ -230,6 +268,8 @@ export function useRecorder(): UseRecorderReturn {
     error,
     duration,
     voiceMetrics,
+    liveVoiceMetrics,
+    liveEmotion,
     currentVolume,
     startRecording,
     stopRecording,

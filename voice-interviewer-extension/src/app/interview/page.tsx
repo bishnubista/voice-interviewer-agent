@@ -1,17 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import EmotionVisualizer from '@/components/EmotionVisualizer';
 import AIInterviewer from '@/components/AIInterviewer';
 import { useInterview } from '@/hooks/useInterview';
-import type { VoiceMetrics } from '@/lib/emotionAnalysis';
+import type { EmotionResult, VoiceMetrics } from '@/lib/emotionAnalysis';
 import Link from 'next/link';
 import { ArrowLeft, Play } from 'lucide-react';
 
 export default function InterviewPage() {
   const [transcript, setTranscript] = useState<string>('');
   const [template] = useState<string>('product_feedback');
+  const [liveEmotion, setLiveEmotion] = useState<EmotionResult | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
 
   const {
     conversation,
@@ -33,10 +35,32 @@ export default function InterviewPage() {
     setTranscript('');
   };
 
-  // Get latest emotion from last user message (not AI message)
-  const currentEmotion = conversation
-    .filter(msg => msg.role === 'user')
-    .reverse()[0]?.emotion || null;
+  const handleLiveEmotionUpdate = (emotion: EmotionResult | null) => {
+    setLiveEmotion(emotion);
+  };
+
+  const handleRecordingStateChange = (recording: boolean) => {
+    setIsRecording(recording);
+    if (!recording && conversation.length === 0) {
+      setLiveEmotion(null);
+    }
+  };
+
+  // Get latest emotion from conversation (ignore AI prompts without emotion payload)
+  const latestEmotionMessage = [...conversation].reverse().find((message) => message.emotion);
+  const currentEmotion = latestEmotionMessage?.emotion ?? null;
+
+  useEffect(() => {
+    if (currentEmotion) {
+      setLiveEmotion(null);
+    }
+  }, [currentEmotion]);
+
+  useEffect(() => {
+    if (conversation.length === 0 && !isRecording) {
+      setLiveEmotion(null);
+    }
+  }, [conversation.length, isRecording]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -95,7 +119,11 @@ export default function InterviewPage() {
               isProcessing={isProcessing}
             />
             {conversation.length > 0 && (
-              <VoiceRecorder onRecordingComplete={handleRecordingComplete} />
+              <VoiceRecorder
+                onRecordingComplete={handleRecordingComplete}
+                onLiveEmotionUpdate={handleLiveEmotionUpdate}
+                onRecordingStateChange={handleRecordingStateChange}
+              />
             )}
 
             {/* Transcript Input */}
@@ -121,7 +149,11 @@ export default function InterviewPage() {
 
           {/* Right Column: Emotion Dashboard */}
           <div className="space-y-6">
-            <EmotionVisualizer emotion={currentEmotion} isLive={isProcessing} />
+            <EmotionVisualizer
+              emotion={currentEmotion}
+              liveEmotion={liveEmotion}
+              isLive={isRecording || isProcessing}
+            />
 
             {/* Instructions */}
             <div className="p-6 border-2 border-indigo-200 rounded-lg bg-indigo-50">
