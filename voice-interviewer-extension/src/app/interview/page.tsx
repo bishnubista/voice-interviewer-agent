@@ -33,10 +33,9 @@ export default function InterviewPage() {
     setTranscript('');
   };
 
-  // Get latest emotion from last user message (not AI message)
-  const currentEmotion = conversation
-    .filter(msg => msg.role === 'user')
-    .reverse()[0]?.emotion || null;
+  // Get latest emotion from conversation (ignore AI prompts without emotion payload)
+  const latestEmotionMessage = [...conversation].reverse().find((message) => message.emotion);
+  const currentEmotion = latestEmotionMessage?.emotion ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50">
