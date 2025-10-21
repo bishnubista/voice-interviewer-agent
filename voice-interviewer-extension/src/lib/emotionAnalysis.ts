@@ -32,6 +32,16 @@ export interface EmotionResult {
 export function classifyEmotion(metrics: VoiceMetrics, transcript?: string): EmotionResult {
   const { avgVolume, volumeVariance, speechRate, avgPause, peakVolume } = metrics;
 
+  // Debug logging to see actual metrics
+  console.log('🔍 Emotion Analysis Metrics:', {
+    avgVolume,
+    volumeVariance,
+    speechRate,
+    avgPause,
+    peakVolume,
+    transcript: transcript?.substring(0, 50)
+  });
+
   // Calculate engagement based on volume and speech rate
   const volumeEngagement = Math.min(avgVolume / 70 * 50, 50); // Max 50 points
   const paceEngagement = speechRate > 100 ? Math.min((speechRate - 100) / 80 * 50, 50) : 0; // Max 50 points
@@ -51,13 +61,57 @@ export function classifyEmotion(metrics: VoiceMetrics, transcript?: string): Emo
     1
   );
 
-  // Heuristic rules for emotion classification
+  // Weighted scoring system for emotion classification
+  // Calculate scores for each emotion (0-100)
 
-  // ENTHUSIASM: High volume + fast speech + low pauses
-  if (avgVolume > 65 && speechRate > 140 && avgPause < 400 && conviction > 0.6) {
+  const enthusiasmScore =
+    (avgVolume > 45 ? (avgVolume - 45) * 2 : 0) + // High volume
+    (speechRate > 130 ? (speechRate - 130) * 0.5 : 0) + // Fast speech
+    (avgPause < 500 ? (500 - avgPause) * 0.05 : 0) + // Short pauses
+    (conviction > 0.5 ? (conviction - 0.5) * 50 : 0); // Strong conviction
+
+  const frustrationScore =
+    (volumeVariance > 0.15 ? (volumeVariance - 0.15) * 100 : 0) + // High variance
+    (speechRate > 140 ? (speechRate - 140) * 0.4 : 0) + // Fast speech
+    (peakVolume > 60 ? (peakVolume - 60) * 0.8 : 0) + // Volume spikes
+    (avgPause < 400 ? (400 - avgPause) * 0.04 : 0); // Short, choppy pauses
+
+  const uncertaintyScore =
+    (avgVolume < 50 ? (50 - avgVolume) * 1.5 : 0) + // Low volume
+    (speechRate < 120 ? (120 - speechRate) * 0.6 : 0) + // Slow speech
+    (avgPause > 400 ? (avgPause - 400) * 0.06 : 0) + // Long pauses
+    (conviction < 0.5 ? (0.5 - conviction) * 40 : 0); // Lack of conviction
+
+  console.log('📊 Emotion Scores:', {
+    enthusiasm: enthusiasmScore.toFixed(2),
+    frustration: frustrationScore.toFixed(2),
+    uncertainty: uncertaintyScore.toFixed(2)
+  });
+
+  // Determine dominant emotion (threshold: 15 points)
+  const minScore = 15;
+  const maxScore = Math.max(enthusiasmScore, frustrationScore, uncertaintyScore);
+
+  if (maxScore < minScore) {
+    // No strong emotion detected
+    return {
+      emotion: 'neutral',
+      confidence: 0.70,
+      engagement,
+      authenticity: authenticityAnalysis,
+      metrics: {
+        volume: avgVolume,
+        pace: speechRate,
+        conviction
+      }
+    };
+  }
+
+  // Return dominant emotion
+  if (enthusiasmScore === maxScore && enthusiasmScore >= minScore) {
     return {
       emotion: 'enthusiasm',
-      confidence: Math.min(0.7 + (avgVolume - 65) / 100, 0.95),
+      confidence: Math.min(0.65 + enthusiasmScore / 100, 0.95),
       engagement,
       authenticity: authenticityAnalysis,
       metrics: {
@@ -68,11 +122,10 @@ export function classifyEmotion(metrics: VoiceMetrics, transcript?: string): Emo
     };
   }
 
-  // FRUSTRATION: Volume spikes + fast speech + short pauses + high variance
-  if (volumeVariance > 0.25 && speechRate > 150 && avgPause < 350 && peakVolume > 80) {
+  if (frustrationScore === maxScore && frustrationScore >= minScore) {
     return {
       emotion: 'frustration',
-      confidence: Math.min(0.65 + volumeVariance, 0.90),
+      confidence: Math.min(0.65 + frustrationScore / 100, 0.92),
       engagement,
       authenticity: authenticityAnalysis,
       metrics: {
@@ -83,12 +136,11 @@ export function classifyEmotion(metrics: VoiceMetrics, transcript?: string): Emo
     };
   }
 
-  // UNCERTAINTY: Low volume + slow speech + long pauses + low conviction
-  if (avgVolume < 55 && speechRate < 110 && avgPause > 450 && conviction < 0.4) {
+  if (uncertaintyScore === maxScore && uncertaintyScore >= minScore) {
     return {
       emotion: 'uncertainty',
-      confidence: Math.min(0.6 + (500 - avgPause) / 1000, 0.85),
-      engagement: Math.max(engagement - 15, 0), // Reduce engagement for uncertainty
+      confidence: Math.min(0.60 + uncertaintyScore / 100, 0.88),
+      engagement: Math.max(engagement - 10, 0),
       authenticity: authenticityAnalysis,
       metrics: {
         volume: avgVolume,
@@ -98,7 +150,7 @@ export function classifyEmotion(metrics: VoiceMetrics, transcript?: string): Emo
     };
   }
 
-  // NEUTRAL: Everything else
+  // Fallback to neutral
   return {
     emotion: 'neutral',
     confidence: 0.65,

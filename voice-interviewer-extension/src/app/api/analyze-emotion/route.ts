@@ -1,14 +1,38 @@
 import { NextResponse } from 'next/server';
 import { classifyEmotion, type VoiceMetrics } from '@/lib/emotionAnalysis';
+import { analyzeAudioWithHume } from '@/lib/humeService';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { audioMetrics, transcript } = body;
+    const { audioMetrics, transcript, audioUrl } = body;
+
+    // Check if we should use Hume AI (requires API keys and audio URL)
+    const useHumeAI = process.env.HUME_API_KEY &&
+                      process.env.HUME_SECRET_KEY &&
+                      audioUrl;
+
+    if (useHumeAI) {
+      console.log('🎭 Using Hume AI for emotion analysis');
+
+      try {
+        const humeResult = await analyzeAudioWithHume(audioUrl);
+        return NextResponse.json({
+          ...humeResult,
+          source: 'hume-ai' // Indicate which analysis method was used
+        });
+      } catch (humeError) {
+        console.warn('⚠️  Hume AI analysis failed, falling back to heuristic:', humeError);
+        // Fall through to heuristic analysis
+      }
+    }
+
+    // Fallback to heuristic analysis
+    console.log('📊 Using heuristic analysis for emotion detection');
 
     if (!audioMetrics) {
       return NextResponse.json(
-        { error: 'audioMetrics are required' },
+        { error: 'audioMetrics or audioUrl are required' },
         { status: 400 }
       );
     }
@@ -36,10 +60,13 @@ export async function POST(request: Request) {
 
     const emotionResult = classifyEmotion(voiceMetrics, transcript);
 
-    return NextResponse.json(emotionResult);
+    return NextResponse.json({
+      ...emotionResult,
+      source: 'heuristic' // Indicate which analysis method was used
+    });
 
   } catch (error) {
-    console.error('Emotion analysis error:', error);
+    console.error('❌ Emotion analysis error:', error);
 
     return NextResponse.json(
       {
@@ -48,7 +75,8 @@ export async function POST(request: Request) {
         confidence: 0.5,
         engagement: 50,
         authenticity: { score: 0.7, flags: [] },
-        metrics: { volume: 0, pace: 0, conviction: 0 }
+        metrics: { volume: 0, pace: 0, conviction: 0 },
+        source: 'error-fallback'
       },
       { status: 500 }
     );
