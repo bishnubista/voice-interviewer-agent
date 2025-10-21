@@ -12,6 +12,14 @@ export interface ConversationMessage {
   voiceMetrics?: VoiceMetrics;
 }
 
+interface DiscussionGuide {
+  title: string;
+  sections: Array<{
+    title: string;
+    questions: string[];
+  }>;
+}
+
 export interface UseInterviewReturn {
   conversation: ConversationMessage[];
   currentQuestion: string;
@@ -22,11 +30,12 @@ export interface UseInterviewReturn {
   resetInterview: () => void;
 }
 
-export function useInterview(template: string = 'product_feedback'): UseInterviewReturn {
+export function useInterview(template: string = 'product_feedback', discussionGuide?: DiscussionGuide | null): UseInterviewReturn {
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentSection, setCurrentSection] = useState<number>(0);
 
   const startInterview = useCallback(async () => {
     setIsProcessing(true);
@@ -41,6 +50,8 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
           conversationHistory: [],
           currentEmotion: null,
           interviewTemplate: template,
+          discussionGuide: discussionGuide,
+          currentSection: 0,
         }),
       });
 
@@ -66,7 +77,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
     } finally {
       setIsProcessing(false);
     }
-  }, [template]);
+  }, [template, discussionGuide]);
 
   const submitResponse = useCallback(async (
     audioBlob: Blob,
@@ -143,6 +154,12 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
 
       // Step 4: Generate next question based on emotion
       console.log('🤖 Generating next question based on emotion:', emotionData.emotion);
+      
+      // Progress through discussion guide sections
+      const nextSection = discussionGuide && currentSection < discussionGuide.sections.length - 1 
+        ? currentSection + 1 
+        : currentSection;
+      
       const nextQuestionResponse = await fetch('/api/generate-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,6 +170,8 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
           ],
           currentEmotion: emotionData,
           interviewTemplate: template,
+          discussionGuide: discussionGuide,
+          currentSection: nextSection,
         }),
       });
 
@@ -168,6 +187,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
 
       setConversation(prev => [...prev, aiMsg]);
       setCurrentQuestion(nextQuestionData.question);
+      setCurrentSection(nextSection);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process response');
@@ -175,12 +195,13 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
     } finally {
       setIsProcessing(false);
     }
-  }, [conversation, template]);
+  }, [conversation, template, discussionGuide, currentSection]);
 
   const resetInterview = useCallback(() => {
     setConversation([]);
     setCurrentQuestion('');
     setError(null);
+    setCurrentSection(0);
   }, []);
 
   return {

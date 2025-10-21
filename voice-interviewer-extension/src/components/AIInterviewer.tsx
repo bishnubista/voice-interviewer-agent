@@ -3,13 +3,22 @@
 import { MessageCircle, Sparkles } from 'lucide-react';
 import type { ConversationMessage } from '@/hooks/useInterview';
 
+interface DiscussionGuide {
+  title: string;
+  sections: Array<{
+    title: string;
+    questions: string[];
+  }>;
+}
+
 interface AIInterviewerProps {
   conversation: ConversationMessage[];
   currentQuestion: string;
   isProcessing: boolean;
+  discussionGuide?: DiscussionGuide | null;
 }
 
-export default function AIInterviewer({ conversation, currentQuestion, isProcessing }: AIInterviewerProps) {
+export default function AIInterviewer({ conversation, currentQuestion, isProcessing, discussionGuide }: AIInterviewerProps) {
   return (
     <div className="p-6 border-2 rounded-lg bg-white shadow-sm">
       <div className="flex items-center gap-2 mb-4">
@@ -84,7 +93,28 @@ export default function AIInterviewer({ conversation, currentQuestion, isProcess
         <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border-2 border-indigo-200">
           <div className="flex items-start gap-2">
             <Sparkles className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
-            <div>
+            <div className="flex-1">
+              {discussionGuide && (
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-indigo-600 mb-1">Discussion Guide Progress:</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 bg-indigo-200 rounded-full h-2">
+                      <div 
+                        className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${Math.min(((conversation.filter(msg => msg.role === 'ai').length) / (discussionGuide.sections.length * 2)) * 100, 100)}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <span className="text-xs text-indigo-600 font-medium">
+                      {conversation.filter(msg => msg.role === 'ai').length} / {discussionGuide.sections.length * 2} questions
+                    </span>
+                  </div>
+                  <p className="text-xs text-indigo-600">
+                    Current Section: {discussionGuide.sections[Math.floor(conversation.filter(msg => msg.role === 'ai').length / 2)]?.title || 'Introduction'}
+                  </p>
+                </div>
+              )}
               <p className="text-xs font-semibold text-indigo-600 mb-1">Current Question:</p>
               <p className="text-sm text-indigo-900 font-medium">{currentQuestion}</p>
             </div>

@@ -23,7 +23,7 @@ const fallbackQuestions = [
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { conversationHistory, currentEmotion, interviewTemplate } = body;
+    const { conversationHistory, currentEmotion, interviewTemplate, discussionGuide, currentSection } = body;
 
     if (!conversationHistory || !Array.isArray(conversationHistory)) {
       return NextResponse.json(
@@ -53,9 +53,37 @@ Adaptation guidelines:
 - Neutral: Maintain balanced questioning pace.
 ` : '';
 
-    const templateContext = getTemplateContext(interviewTemplate);
+    // Use discussion guide if available, otherwise fall back to template
+    let systemPrompt: string;
+    
+    if (discussionGuide && discussionGuide.sections) {
+      const currentSectionIndex = currentSection || 0;
+      const currentSectionData = discussionGuide.sections[currentSectionIndex];
+      const allQuestions = discussionGuide.sections.flatMap(section => section.questions);
+      
+      systemPrompt = `You are an empathetic market research interviewer following this discussion guide:
 
-    const systemPrompt = `You are an empathetic market research interviewer conducting ${templateContext.name}.
+TITLE: ${discussionGuide.title}
+
+CURRENT SECTION: ${currentSectionData?.title || 'Introduction'}
+Available questions for this section: ${currentSectionData?.questions?.join(', ') || 'General questions'}
+
+All guide questions: ${allQuestions.join(', ')}
+
+${emotionContext}
+
+Generate ONE follow-up question that:
+1. Follows the discussion guide structure and topics
+2. Builds naturally on the conversation
+3. Adapts to the respondent's emotional state
+4. Seeks genuine insights, not stock answers
+5. Is conversational, not robotic
+6. Progresses through the guide sections appropriately
+
+Keep questions under 20 words. Be human.`;
+    } else {
+      const templateContext = getTemplateContext(interviewTemplate);
+      systemPrompt = `You are an empathetic market research interviewer conducting ${templateContext.name}.
 
 ${templateContext.focus}
 
@@ -68,6 +96,7 @@ Generate ONE follow-up question that:
 4. Is conversational, not robotic
 
 Keep questions under 20 words. Be human.`;
+    }
 
     // Generate adaptive question using GPT
     const completion = await openai.chat.completions.create({
