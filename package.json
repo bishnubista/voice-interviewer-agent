@@ -1,0 +1,36 @@
+{
+  "name": "empathetic-insights",
+  "version": "1.0.0",
+  "description": "Emotion-Adaptive Voice AI for Market Research",
+  "private": true,
+  "scripts": {
+    "dev:all": "concurrently \"npm run dev:auth\" \"npm run dev:interview\"",
+    "dev:auth": "cd clerk-auth-extension && npm run dev",
+    "dev:interview": "cd voice-interviewer-extension && npm run dev -- -p 3001",
+    "build:all": "npm run build:auth && npm run build:interview",
+    "build:auth": "cd clerk-auth-extension && npm run build",
+    "build:interview": "cd voice-interviewer-extension && npm run build",
+    "install:all": "npm install && cd clerk-auth-extension && npm install && cd ../voice-interviewer-extension && npm install",
+    "clean": "rm -rf clerk-auth-extension/.next voice-interviewer-extension/.next clerk-auth-extension/node_modules voice-interviewer-extension/node_modules node_modules",
+    "test:all": "npm run test:auth && npm run test:interview",
+    "test:auth": "cd clerk-auth-extension && npm test",
+    "test:interview": "cd voice-interviewer-extension && npm test"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bishnubista/voice-interviewer-agent.git"
+  },
+  "keywords": [
+    "voice-ai",
+    "emotion-detection",
+    "market-research",
+    "nextjs",
+    "clerk",
+    "openai"
+  ],
+  "author": "Bishnu Bista",
+  "license": "MIT"
+}

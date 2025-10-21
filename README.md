@@ -152,8 +152,18 @@ Get your keys from:
 
 ### 3️⃣ Install Dependencies
 
+**Option A: Install all at once (recommended)**
 ```bash
-# Install for both extensions
+# From project root - installs dependencies for both apps
+npm run install:all
+```
+
+**Option B: Install individually**
+```bash
+# Install root dependencies first
+npm install
+
+# Then install for each extension
 cd clerk-auth-extension && npm install
 cd ../voice-interviewer-extension && npm install
 ```
@@ -166,16 +176,18 @@ cd ../voice-interviewer-extension && npm install
 npm run dev:all
 ```
 
+This starts both apps concurrently:
+- Clerk Auth Extension on http://localhost:3000
+- Voice Interviewer on http://localhost:3001
+
 **Option B: Run individually**
 ```bash
 # Terminal 1 - Clerk Auth
-cd clerk-auth-extension
-npm run dev
+npm run dev:auth
 # Runs on http://localhost:3000
 
 # Terminal 2 - Voice Interviewer
-cd voice-interviewer-extension
-npm run dev -- -p 3001
+npm run dev:interview
 # Runs on http://localhost:3001
 ```
 
@@ -308,6 +320,24 @@ See [API_CONTRACT.md](docs/API_CONTRACT.md) for detailed specifications.
 ---
 
 ## 🛠️ Development
+
+### Available Scripts
+
+Run these commands from the **project root**:
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev:all` | Run both apps concurrently (Auth on :3000, Interview on :3001) |
+| `npm run dev:auth` | Run only the Clerk Auth extension |
+| `npm run dev:interview` | Run only the Voice Interviewer extension |
+| `npm run build:all` | Build both apps for production |
+| `npm run build:auth` | Build only the Clerk Auth extension |
+| `npm run build:interview` | Build only the Voice Interviewer extension |
+| `npm run install:all` | Install dependencies for both apps |
+| `npm run test:all` | Run tests for both apps |
+| `npm run clean` | Remove all node_modules and .next build directories |
+
+### Development Workflow
 
 See [PLAN.md](PLAN.md) for detailed phase-based development plan with validation criteria.
 
