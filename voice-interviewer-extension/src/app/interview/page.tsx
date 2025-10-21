@@ -46,7 +46,7 @@ export default function InterviewPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
-                href="http://localhost:3000/dashboard"
+                href={`${process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://clerk-auth-extension-8wyxxwe11-bbista.vercel.app'}/dashboard`}
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
