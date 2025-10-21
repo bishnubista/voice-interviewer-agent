@@ -23,11 +23,19 @@ export default function InterviewPage() {
     resetInterview,
   } = useInterview(template);
 
-  const handleRecordingComplete = async (audioBlob: Blob, voiceMetrics: VoiceMetrics) => {
-    console.log('Recording complete:', { audioBlob, voiceMetrics });
+  const handleRecordingComplete = async (audioBlob: Blob, voiceMetrics: VoiceMetrics, liveTranscript?: string) => {
+    console.log('Recording complete:', { audioBlob, voiceMetrics, liveTranscript });
+
+    // Use live transcript if available, otherwise use manual transcript
+    const finalTranscript = liveTranscript || transcript;
+
+    // Update the transcript field with live transcript for user to see/edit
+    if (liveTranscript) {
+      setTranscript(liveTranscript);
+    }
 
     // Submit response with transcription and emotion analysis
-    await submitResponse(audioBlob, voiceMetrics, transcript);
+    await submitResponse(audioBlob, voiceMetrics, finalTranscript);
 
     // Clear transcript input for next response
     setTranscript('');
