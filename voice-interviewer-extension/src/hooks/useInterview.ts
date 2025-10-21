@@ -109,7 +109,30 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
 
       console.log('💬 Using transcript:', transcript);
 
-      // Step 2: Analyze emotion
+      // Step 2: Upload audio to get public URL (for Hume AI)
+      let audioUrl: string | undefined;
+      try {
+        console.log('📤 Uploading audio to Vercel Blob...');
+        const uploadFormData = new FormData();
+        uploadFormData.append('audio', audioBlob);
+
+        const uploadResponse = await fetch('/api/upload-audio', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          audioUrl = uploadData.url;
+          console.log('✅ Audio uploaded successfully:', audioUrl);
+        } else {
+          console.warn('⚠️  Audio upload failed, will use heuristic analysis');
+        }
+      } catch (uploadError) {
+        console.warn('⚠️  Audio upload error, will use heuristic analysis:', uploadError);
+      }
+
+      // Step 3: Analyze emotion (with audioUrl if available)
       console.log('😊 Analyzing emotion with metrics:', voiceMetrics);
       const emotionResponse = await fetch('/api/analyze-emotion', {
         method: 'POST',
@@ -117,6 +140,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
         body: JSON.stringify({
           audioMetrics: voiceMetrics,
           transcript,
+          audioUrl, // Pass URL for Hume AI analysis
         }),
       });
 
@@ -129,7 +153,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
       const emotionData: EmotionResult = await emotionResponse.json();
       console.log('😊 Emotion analysis result:', emotionData);
 
-      // Step 3: Add user response to conversation
+      // Step 4: Add user response to conversation
       const userMsg: ConversationMessage = {
         id: Date.now().toString(),
         role: 'user',
@@ -141,7 +165,7 @@ export function useInterview(template: string = 'product_feedback'): UseIntervie
 
       setConversation(prev => [...prev, userMsg]);
 
-      // Step 4: Generate next question based on emotion
+      // Step 5: Generate next question based on emotion
       console.log('🤖 Generating next question based on emotion:', emotionData.emotion);
       const nextQuestionResponse = await fetch('/api/generate-question', {
         method: 'POST',

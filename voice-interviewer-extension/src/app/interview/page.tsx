@@ -150,12 +150,12 @@ export default function InterviewPage() {
                 </li>
                 <li className="flex gap-2">
                   <span className="font-bold">4.</span>
-                  <span>See emotion analysis + AI adapts next question</span>
+                  <span>Stop recording → AI analyzes emotion (2-5 sec) + adapts next question</span>
                 </li>
               </ol>
               <div className="mt-4 pt-4 border-t border-indigo-200">
                 <p className="text-xs text-indigo-700">
-                  <strong>✨ Phase 3:</strong> Real-time emotion detection + adaptive AI questioning.
+                  <strong>✨ Phase 3:</strong> Professional emotion detection with Hume AI + adaptive questioning.
                   {!process.env.NEXT_PUBLIC_OPENAI_ENABLED && (
                     <span className="block mt-1">
                       Add OPENAI_API_KEY for auto-transcription & smarter questions!
