@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useRecorder } from '@/hooks/useRecorder';
 import { Mic, Square, Pause, Play, RotateCcw } from 'lucide-react';
 import type { VoiceMetrics } from '@/lib/emotionAnalysis';
@@ -24,16 +25,29 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
     resumeRecording,
     resetRecording,
   } = useRecorder();
+  const hasNotifiedRef = useRef(false);
 
   const handleStop = () => {
     stopRecording();
-    // Wait a tick for voiceMetrics to be calculated
-    setTimeout(() => {
-      if (audioBlob && voiceMetrics && onRecordingComplete) {
-        onRecordingComplete(audioBlob, voiceMetrics);
-      }
-    }, 100);
+    hasNotifiedRef.current = false;
   };
+
+  const handleReset = () => {
+    hasNotifiedRef.current = false;
+    resetRecording();
+  };
+
+  useEffect(() => {
+    if (isRecording) {
+      hasNotifiedRef.current = false;
+      return;
+    }
+
+    if (!hasNotifiedRef.current && audioBlob && voiceMetrics && onRecordingComplete) {
+      onRecordingComplete(audioBlob, voiceMetrics);
+      hasNotifiedRef.current = true;
+    }
+  }, [audioBlob, voiceMetrics, onRecordingComplete, isRecording]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -138,7 +152,7 @@ export default function VoiceRecorder({ onRecordingComplete }: VoiceRecorderProp
 
         {audioURL && !isRecording && (
           <button
-            onClick={resetRecording}
+            onClick={handleReset}
             className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
           >
             <RotateCcw className="w-4 h-4" />
